@@ -134,11 +134,14 @@ python main_distributed.py \
 
 ---
 
-### Requirements
-* Python 3.8 (or newer)
-* PyTorch 2.0
-* torchvision
-* Other dependencies: pyyaml, numpy, opencv, submitit
+### Installation
+
+To install the package, clone the repository and run:
+```bash
+uv venv
+source .venv/bin/activate
+uv sync
+```
 
 ## License
 See the [LICENSE](./LICENSE) file for details about the license under which this code is made available.
