@@ -11,7 +11,7 @@ data:
   use_gaussian_blur: false
   use_horizontal_flip: false
 logging:
-  folder: ./logs/vith14.224-bs.2048-ep.300/
+  folder: ./out/vith14.224-bs.2048-ep.300/
   write_tag: jepa
 mask:
   allow_overlap: false

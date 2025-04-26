@@ -189,6 +189,7 @@ def main(args, resume_preempt=False):
         training=True,
         num_workers=num_workers,
         world_size=world_size,
+        local_rank=rank,
         drop_last=True,
     )
     ipe = len(unsupervised_loader)
@@ -298,9 +299,7 @@ def main(args, resume_preempt=False):
                     return loss
 
                 # Step 1. Forward
-                with torch.cuda.amp.autocast(
-                    dtype=torch.bfloat16, enabled=use_bfloat16
-                ):
+                with torch.amp.autocast(dtype=torch.bfloat16, enabled=use_bfloat16):
                     h = forward_target()
                     z = forward_context()
                     loss = loss_fn(z, h)

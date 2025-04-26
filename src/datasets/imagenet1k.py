@@ -26,6 +26,7 @@ def make_imagenet1k(
     collator=None,
     pin_mem=True,
     num_workers=8,
+    local_rank=None,
     world_size=1,
     rank=0,
     training=True,
@@ -36,6 +37,7 @@ def make_imagenet1k(
         transform=transform,
         train=training,
         index_targets=False,
+        local_rank=local_rank,
     )
     if subset_file is not None:
         dataset = ImageNetSubset(dataset, subset_file)
@@ -84,15 +86,9 @@ class ImageNet(torchvision.datasets.ImageFolder):
 
         # set root to $SLURM_TMPDIR / imagenet_full
         root = os.environ.get("SLURM_TMPDIR", "/tmp")
-        root = os.path.join(root, "imagenet_full")
-        if not os.path.exists(root):
-            logger.info(f"Creating directory {root}")
-            os.makedirs(root, exist_ok=True)
-
-        data_path = None
-        if copy_data:
-            logger.info("copying data locally")
-            data_path = copy_imgnt_locally(local_rank=local_rank)
+        root = os.path.join(root, "imagenet")
+        data_path = "/tmp/imagenet/"
+        logger.info("copying data locally")
         logger.info(f"data-path {data_path}")
 
         super(ImageNet, self).__init__(root=data_path, transform=transform)
@@ -157,83 +153,3 @@ class ImageNetSubset(object):
         if self.dataset.target_transform is not None:
             target = self.dataset.target_transform(target)
         return img, target
-
-
-def copy_imgnt_locally(local_rank=None):
-    """
-    Copy ImageNet dataset from network folder to local scratch space.
-    Only copies if not already present, and only on the master process.
-
-    Args:
-        local_rank: Local rank of the process. If None, tries to get from env var.
-
-    Returns:
-        str: Path to the local copy of the dataset, or None if couldn't copy
-    """
-    # Set source and target paths
-    source_path = "/network/datasets/imagenet/"
-
-    try:
-        target_base = os.environ["SLURM_TMPDIR"]
-    except KeyError:
-        logger.info(
-            "No SLURM_TMPDIR environment variable found, will load directly from network"
-        )
-        return None
-
-    target_path = os.path.join(target_base, "imagenet_full")
-
-    # Get local rank if not provided
-    if local_rank is None:
-        try:
-            local_rank = int(os.environ.get("SLURM_LOCALID", 0))
-        except Exception:
-            logger.info(
-                "Could not determine local rank, will load directly from network"
-            )
-            return None
-
-    # Signal file to indicate completion
-    signal_file = os.path.join(target_base, "imagenet_copy_complete.txt")
-
-    # Only the master process (rank 0) should copy the data
-    if local_rank == 0:
-        # Check if data is already copied
-        if not os.path.exists(target_path):
-            logger.info(f"Copying ImageNet from {source_path} to {target_path}")
-
-            # Create target directory if it doesn't exist
-            os.makedirs(target_path, exist_ok=True)
-
-            # Use rsync for efficient copying
-            start_time = time.time()
-            try:
-                subprocess.run(["rsync", "-a", source_path, target_path], check=True)
-                duration = (time.time() - start_time) / 60.0
-                logger.info(f"Copy completed in {duration:.2f} minutes")
-
-                # Create signal file to indicate completion
-                with open(signal_file, "w") as f:
-                    f.write(f"Copy completed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Failed to copy ImageNet dataset: {e}")
-                return None
-        else:
-            logger.info(f"ImageNet dataset already exists at {target_path}")
-
-            # Ensure signal file exists even if the directory was already there
-            if not os.path.exists(signal_file):
-                with open(signal_file, "w") as f:
-                    f.write(f"Copy verified at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    # Non-master processes wait for the signal file
-    else:
-        logger.info(f"Process {local_rank} waiting for master to copy data...")
-        while not os.path.exists(signal_file):
-            time.sleep(30)  # Check every 30 seconds instead of 60
-            logger.info(f"Process {local_rank}: Still waiting for copy to complete...")
-
-        logger.info(f"Process {local_rank}: Master finished copying data")
-
-    return target_path
