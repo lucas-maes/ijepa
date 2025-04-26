@@ -1,3 +1,8 @@
 *.swp
 *.swo
 __pycache__
+*.egg
+*.egg-info
+*.pyc
+
+out/

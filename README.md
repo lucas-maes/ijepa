@@ -141,6 +141,7 @@ To install the package, clone the repository and run:
 uv venv
 source .venv/bin/activate
 uv sync
+uv pip install -e .
 ```
 
 ## License

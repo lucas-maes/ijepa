@@ -64,7 +64,6 @@ def main(args, resume_preempt=False):
     model_name = args["meta"]["model_name"]
     load_model = args["meta"]["load_checkpoint"] or resume_preempt
     r_file = args["meta"]["read_checkpoint"]
-    copy_data = args["meta"]["copy_data"]
     pred_depth = args["meta"]["pred_depth"]
     pred_emb_dim = args["meta"]["pred_emb_dim"]
     if not torch.cuda.is_available():
@@ -82,8 +81,6 @@ def main(args, resume_preempt=False):
     batch_size = args["data"]["batch_size"]
     pin_mem = args["data"]["pin_mem"]
     num_workers = args["data"]["num_workers"]
-    root_path = args["data"]["root_path"]
-    image_folder = args["data"]["image_folder"]
     crop_size = args["data"]["crop_size"]
     crop_scale = args["data"]["crop_scale"]
     # --
@@ -192,10 +189,6 @@ def main(args, resume_preempt=False):
         training=True,
         num_workers=num_workers,
         world_size=world_size,
-        rank=rank,
-        root_path=root_path,
-        image_folder=image_folder,
-        copy_data=copy_data,
         drop_last=True,
     )
     ipe = len(unsupervised_loader)
