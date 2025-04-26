@@ -1,0 +1,13 @@
+[project]
+name = "ijepa"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=2.0.2",
+    "pyyaml>=6.0.2",
+    "submitit>=1.5.2",
+    "torch>=2.7.0",
+    "torchvision>=0.22.0",
+]
